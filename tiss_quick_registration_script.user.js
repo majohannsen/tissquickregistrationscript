@@ -77,26 +77,29 @@
         scriptEnabled: true,
 
         // define here the type of registration [lva,group,exam]
-        registrationType: "group",
+        registrationType: "exam",
 
         // name of you the group you want to join (only for registrationType 'group') [String]
         nameOfGroup: "Gruppe 001",
 
         // name of the exam which you want to join (only for registrationType 'exam') [String]
-        nameOfExam: "Name Of Exam",
+        nameOfExam: "TUWEL-Test",
 
         // date of the exam which you want to join, especially when there are multiple exams with the same name (only for registrationType 'exam') [String]
-        dateOfExam: '',
+        dateOfExam: "04.10.2023",
+
+        // the time slot you want to be in
+        timeSlot: 1,
 
         // checks if you are at the correct lva page
         lvaCheckEnabled: true,
 
         // only if the number is right, the script is enabled [String]
-        lvaNumber: "123.456",
+        lvaNumber: "185.A91",
 
         // if you have multiple study codes, enter here the study code number you want
         // to register for eg. '123456' (no blanks). Otherwise leave empty. [String]
-        studyCode: '',
+        studyCode: "",
 
         // autoGoToLVA: true,        // coming soon
 
@@ -104,7 +107,7 @@
         lvaSemesterCheckEnabled: true,
 
         // only if the semester is right, the script is enabled [String]
-        lvaSemester: "2019W",
+        lvaSemester: "2023W",
 
         // autoGoToSemester: true,   // coming soon
 
@@ -136,13 +139,13 @@
         // define the specific time the script should start [Date]
         // new Date(year, month, day, hours, minutes, seconds, milliseconds)
         // note: months start with 0
-        specificStartTime: new Date(2020, 1 - 1, 9, 20, 27, 0, 0),
+        specificStartTime: new Date(2023, 9 - 1, 20, 16, 21, 0, 0),
 
         // if a specific time is defined, the script will refresh some ms sooner to adjust a delay [Integer]
         delayAdjustmentInMs: 300,
 
         // show log output of the script on screen [true,false]
-        showLog: true
+        showLog: true,
     };
 
     //
@@ -303,6 +306,16 @@
         return $('#contentInner').find('#subHeader').text().trim();
     };
 
+    self.getSlotTable = function (wrapper) {
+        return wrapper
+          .find("label:contains('Slots')")
+          .siblings()
+          .find("table tbody tr:eq(" + options.timeSlot - 1 + ") td")
+          .last()
+          .text()
+          .trim();
+      };
+
     self.onLVAPage = function () {
         self.onGroupPage();
     };
@@ -390,6 +403,13 @@
         var regButton = self.getRegistrationButton(examWrapper);
         self.log('regButton: ' + regButton);
 
+        if (!self.doTimeSlotCheck(examWrapper)) {
+            if (options.autoRefresh) {
+                setTimeout(() => self.refreshPage(), 2000);
+            }
+            self.pageOut("your desired slot is full");
+            return;
+        }
 
         // push the button
         if (regButton.length > 0) {
@@ -641,6 +661,21 @@
             return false;
         }
         return true;
+    };
+
+    self.doTimeSlotCheck = function (wrapper) {
+      const cell = wrapper
+        .find("label:contains('Slots')")
+        .siblings()
+        .find("table tbody tr:eq(" + options.timeSlot + ") td")
+        .last()
+        .text()
+        .trim();
+      const booked = cell.split("/")[0].trim();
+      const available = cell.split("/")[1].trim();
+      const isFull = booked === available;
+  
+      return !isFull;
     };
 
     self.doExamCheck = function () {
