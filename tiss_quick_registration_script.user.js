@@ -403,16 +403,9 @@
         var regButton = self.getRegistrationButton(examWrapper);
         self.log('regButton: ' + regButton);
 
-        if (!self.doTimeSlotCheck(examWrapper)) {
-            if (options.autoRefresh) {
-                setTimeout(() => self.refreshPage(), 2000);
-            }
-            self.pageOut("your desired slot is full");
-            return;
-        }
 
         // push the button
-        if (regButton.length > 0) {
+        if (regButton.length > 0 && self.doTimeSlotCheck(examWrapper)) {
 
             self.highlight(regButton);
             regButton.focus();
@@ -423,7 +416,15 @@
         } else {
             if (self.getGroupCancelButton(examWrapper).length > 0) {
                 self.pageOut('you are registered in exam: ' + options.nameOfExam);
-            } else {
+            }
+            else if (!self.doTimeSlotCheck(examWrapper)) {
+                if (options.autoRefresh) {
+                    setTimeout(() => self.refreshPage(), 2000);
+                }
+                self.pageOut("your desired slot is full");
+                return;
+            }
+            else {
                 // Only refresh the page if the option is set and if the registration is not yet completed.
                 if (options.autoRefresh) {
                     refreshPage();
