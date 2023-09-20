@@ -88,8 +88,8 @@
         // date of the exam which you want to join, especially when there are multiple exams with the same name (only for registrationType 'exam') [String]
         dateOfExam: "04.10.2023",
 
-        // the time slot you want to be in
-        timeSlot: 1,
+        // the time slot you want to be in (starting at 0)
+        timeSlot: 0,
 
         // checks if you are at the correct lva page
         lvaCheckEnabled: true,
