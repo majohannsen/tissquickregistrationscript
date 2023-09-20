@@ -123,6 +123,9 @@
         // continuously refresh the page until the script can register you [true,false]
         autoRefresh: true,
 
+        // refresh rate in ms, set to 0 to refresh as fast as possible [Number]
+        refreshRate: 2000,
+
         // automatically presses the ok button on the confirmation info page [true,false]
         autoOkPressAtEnd: true,
 
@@ -257,7 +260,7 @@
     };
 
     self.refreshPage = function () {
-        location.reload();
+        setTimeout(() => location.reload(), options.refreshRate);
     };
 
     self.analysePage = function () {
@@ -419,7 +422,7 @@
             }
             else if (!self.doTimeSlotCheck(examWrapper)) {
                 if (options.autoRefresh) {
-                    setTimeout(() => self.refreshPage(), 2000);
+                    self.refreshPage();
                 }
                 self.pageOut("your desired slot is full");
                 return;
