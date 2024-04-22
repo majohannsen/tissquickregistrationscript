@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name       TISS Quick Registration Script
+// @name       TISS Quick Registration Script (edited)
 // @namespace  http://www.manuelgeier.com/
 // @version    1.6.3
 // @description  Script to help you to get into the group you want. Opens automatically the right panel, registers automatically and confirms your registration automatically. If you don't want the script to do everything automatically, the focus is already set on the right button, so you only need to confirm. There is also an option available to auto refresh the page, if the registration button is not available yet, so you can open the site and watch the script doing its work. You can also set a specific time when the script should reload the page and start.
@@ -101,16 +101,19 @@ SOFTWARE.
         scriptEnabled: true,
 
         // define here the type of registration [lva,group,exam]
-        registrationType: "group",
+        registrationType: "exam",
 
         // name of you the group you want to join (only for registrationType 'group') [String]
         nameOfGroup: "Gruppe 001",
 
         // name of the exam which you want to join (only for registrationType 'exam') [String]
-        nameOfExam: "Name Of Exam",
+        nameOfExam: "Test 1",
 
         // date of the exam which you want to join, especially when there are multiple exams with the same name (only for registrationType 'exam') [String]
-        dateOfExam: '',
+        dateOfExam: "15.05.2024",
+
+        // the time slot you want to be in, the time in the column Beginn e.g. "13:45" (only for registrationType 'exam') [String]
+        timeOfExam: "13:45",
 
         // checks if you are at the correct lva page
         lvaCheckEnabled: true,
@@ -128,7 +131,7 @@ SOFTWARE.
         lvaSemesterCheckEnabled: true,
 
         // only if the semester is right, the script is enabled [String]
-        lvaSemester: "2019W",
+        lvaSemester: "2024S",
 
         // autoGoToSemester: true,   // coming soon
 
@@ -160,7 +163,7 @@ SOFTWARE.
         // define the specific time the script should start [Date]
         // new Date(year, month, day, hours, minutes, seconds, milliseconds)
         // note: months start with 0
-        specificStartTime: new Date(2020, 1 - 1, 9, 20, 27, 0, 0),
+        specificStartTime: new Date(2024, 4 - 1, 22, 15, 0, 0, 0),
 
         // if a specific time is defined, the script will refresh some ms sooner to adjust a delay [Integer]
         delayAdjustmentInMs: 300,
@@ -213,6 +216,11 @@ SOFTWARE.
                         if (examLabel !== null) {
                             self.highlight(examLabel);
                             self.pageLog("Prüfung: " + examLabel.text().trim());
+                            var examSlot = self.doTimeSlotCheck();
+                            if (examSlot !== null) {
+                                self.highlight(examSlot);
+                                self.pageLog("Slot: " + examSlot.children().append(" ").text());
+                            }
                         }
                     }
                 }
@@ -416,7 +424,7 @@ SOFTWARE.
 
 
         // push the button
-        if (regButton.length > 0) {
+        if (regButton.length > 0 && self.doTimeSlotCheck(examWrapper)) {
 
             self.highlight(regButton);
             regButton.focus();
@@ -427,6 +435,13 @@ SOFTWARE.
         } else {
             if (self.getGroupCancelButton(examWrapper).length > 0) {
                 self.pageOut('you are registered in exam: ' + options.nameOfExam);
+            } 
+            else if (!self.doTimeSlotCheck(examWrapper)) {
+                if (options.autoRefresh) {
+                    self.refreshPage();
+                }
+                    self.pageOut("your desired slot is full");
+                return;
             } else {
                 // Only refresh the page if the option is set and if the registration is not yet completed.
                 if (options.autoRefresh) {
@@ -443,6 +458,9 @@ SOFTWARE.
         self.highlight(confirmButton);
         if (options.studyCode !== undefined && options.studyCode.length > 0) {
             self.setSelectValue(studyCodeSelect, options.studyCode);
+        }
+        else if (options.dateOfExam && options.timeOfExam) {
+            self.setSelectValueByTime(studyCodeSelect, options.dateOfExam + " " + options.timeOfExam);
         }
         confirmButton.focus();
         if (options.autoConfirm) {
@@ -624,6 +642,19 @@ SOFTWARE.
         });
     };
 
+    self.getTimeSlot = function (wrapper) {
+        return wrapper
+        .find("label:contains('Slots')")
+        .siblings()
+        .find(
+            "tr:contains('" +
+            options.dateOfExam +
+            "'):contains('" +
+            options.timeOfExam +
+            "')"
+        );
+    };
+
     self.highlight = function (object) {
         object.css("background-color", "lightgreen");
     };
@@ -635,6 +666,20 @@ SOFTWARE.
     self.setSelectValue = function ($element, value) {
         $element.find('option').removeAttr('selected');
         $element.find('option[value="' + value + '"]').attr('selected', 'selected');
+    };
+
+    self.setSelectValueByTime = function ($element, value) {
+        $element.find("option").removeAttr("selected");
+        $element.find("option").each(function () {
+        // Get the text content of the option
+        var optionText = $(this).text().trim();
+        // Check if the option text matches the provided value
+        if (optionText.startsWith(value)) {
+            // If matched, select
+            $(this).attr("selected", "selected");
+            return false; // Exit the loop since we found the matching option
+        }
+        });
     };
 
     self.doGroupCheck = function () {
@@ -665,6 +710,27 @@ SOFTWARE.
             return false;
         }
         return true;
+    };
+
+    self.doTimeSlotCheck = function () {
+        var examLabel = self.doExamCheck();
+        var examWrapper = examLabel.closest(".groupWrapper");
+        const cell = self.getTimeSlot(examWrapper);
+        const cellText = cell.last().text().trim();
+        self.log("cell");
+        self.log(cellText);
+        const booked = cellText.split("/")[0].trim();
+        const available = cellText.split("/")[1].trim();
+        const isFull = booked === available;
+        self.log("isFull");
+        self.log(isFull);
+        if (isFull) {
+        self.pageOut(
+            "Slot is full: " + options.dateOfExam + " " + options.timeOfExam
+        );
+        return null;
+        }
+        return cell;
     };
 
     self.doExamCheck = function () {
